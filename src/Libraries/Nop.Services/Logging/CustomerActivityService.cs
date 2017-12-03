@@ -31,10 +31,7 @@ namespace Nop.Services.Logging
 
         #region Fields
 
-        /// <summary>
-        /// Cache manager
-        /// </summary>
-        private readonly ICacheManager _cacheManager;
+        private readonly IStaticCacheManager _cacheManager;
         private readonly IRepository<ActivityLog> _activityLogRepository;
         private readonly IRepository<ActivityLogType> _activityLogTypeRepository;
         private readonly IWorkContext _workContext;
@@ -42,6 +39,7 @@ namespace Nop.Services.Logging
         private readonly IDataProvider _dataProvider;
         private readonly CommonSettings _commonSettings;
         private readonly IWebHelper _webHelper;
+
         #endregion
         
         #region Ctor
@@ -49,7 +47,7 @@ namespace Nop.Services.Logging
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="cacheManager">Cache manager</param>
+        /// <param name="cacheManager">Static cache manager</param>
         /// <param name="activityLogRepository">Activity log repository</param>
         /// <param name="activityLogTypeRepository">Activity log type repository</param>
         /// <param name="workContext">Work context</param>
@@ -57,7 +55,7 @@ namespace Nop.Services.Logging
         /// <param name="dataProvider">WeData provider</param>
         /// <param name="commonSettings">Common settings</param>
         /// <param name="webHelper">Web helper</param>
-        public CustomerActivityService(ICacheManager cacheManager,
+        public CustomerActivityService(IStaticCacheManager cacheManager,
             IRepository<ActivityLog> activityLogRepository,
             IRepository<ActivityLogType> activityLogTypeRepository,
             IWorkContext workContext,
@@ -79,18 +77,33 @@ namespace Nop.Services.Logging
 
         #region Nested classes
 
+        /// <summary>
+        /// Activity log type for caching
+        /// </summary>
         [Serializable]
         public class ActivityLogTypeForCaching
         {
+            /// <summary>
+            /// Identifier
+            /// </summary>
             public int Id { get; set; }
+            /// <summary>
+            /// System keyword
+            /// </summary>
             public string SystemKeyword { get; set; }
+            /// <summary>
+            /// Name
+            /// </summary>
             public string Name { get; set; }
+            /// <summary>
+            /// Enabled
+            /// </summary>
             public bool Enabled { get; set; }
         }
 
         #endregion
 
-        #region Utitlies
+        #region Utilities
 
         /// <summary>
         /// Gets all activity log types (class for caching)
@@ -99,7 +112,7 @@ namespace Nop.Services.Logging
         protected virtual IList<ActivityLogTypeForCaching> GetAllActivityTypesCached()
         {
             //cache
-            string key = string.Format(ACTIVITYTYPE_ALL_KEY);
+            var key = string.Format(ACTIVITYTYPE_ALL_KEY);
             return _cacheManager.Get(key, () =>
             {
                 var result = new List<ActivityLogTypeForCaching>();
@@ -130,7 +143,7 @@ namespace Nop.Services.Logging
         public virtual void InsertActivityType(ActivityLogType activityLogType)
         {
             if (activityLogType == null)
-                throw new ArgumentNullException("activityLogType");
+                throw new ArgumentNullException(nameof(activityLogType));
 
             _activityLogTypeRepository.Insert(activityLogType);
             _cacheManager.RemoveByPattern(ACTIVITYTYPE_PATTERN_KEY);
@@ -143,7 +156,7 @@ namespace Nop.Services.Logging
         public virtual void UpdateActivityType(ActivityLogType activityLogType)
         {
             if (activityLogType == null)
-                throw new ArgumentNullException("activityLogType");
+                throw new ArgumentNullException(nameof(activityLogType));
 
             _activityLogTypeRepository.Update(activityLogType);
             _cacheManager.RemoveByPattern(ACTIVITYTYPE_PATTERN_KEY);
@@ -156,7 +169,7 @@ namespace Nop.Services.Logging
         public virtual void DeleteActivityType(ActivityLogType activityLogType)
         {
             if (activityLogType == null)
-                throw new ArgumentNullException("activityLogType");
+                throw new ArgumentNullException(nameof(activityLogType));
 
             _activityLogTypeRepository.Delete(activityLogType);
             _cacheManager.RemoveByPattern(ACTIVITYTYPE_PATTERN_KEY);
@@ -195,12 +208,10 @@ namespace Nop.Services.Logging
         /// <param name="comment">The activity comment</param>
         /// <param name="commentParams">The activity comment parameters for string.Format() function.</param>
         /// <returns>Activity log item</returns>
-        public virtual ActivityLog InsertActivity(string systemKeyword,
-            string comment, params object[] commentParams)
+        public virtual ActivityLog InsertActivity(string systemKeyword, string comment, params object[] commentParams)
         {
             return InsertActivity(_workContext.CurrentCustomer, systemKeyword, comment, commentParams);
         }
-
 
         /// <summary>
         /// Inserts an activity log item
@@ -224,14 +235,14 @@ namespace Nop.Services.Logging
             comment = string.Format(comment, commentParams);
             comment = CommonHelper.EnsureMaximumLength(comment, 4000);
 
-            
-
-            var activity = new ActivityLog();
-            activity.ActivityLogTypeId = activityType.Id;
-            activity.Customer = customer;
-            activity.Comment = comment;
-            activity.CreatedOnUtc = DateTime.UtcNow;
-            activity.IpAddress = _webHelper.GetCurrentIpAddress();
+            var activity = new ActivityLog
+            {
+                ActivityLogTypeId = activityType.Id,
+                Customer = customer,
+                Comment = comment,
+                CreatedOnUtc = DateTime.UtcNow,
+                IpAddress = _webHelper.GetCurrentIpAddress()
+            };
 
             _activityLogRepository.Insert(activity);
 
@@ -245,7 +256,7 @@ namespace Nop.Services.Logging
         public virtual void DeleteActivity(ActivityLog activityLog)
         {
             if (activityLog == null)
-                throw new ArgumentNullException("activityLog");
+                throw new ArgumentNullException(nameof(activityLog));
 
             _activityLogRepository.Delete(activityLog);
         }
@@ -266,7 +277,7 @@ namespace Nop.Services.Logging
             int pageIndex = 0, int pageSize = int.MaxValue, string ipAddress = null)
         {
             var query = _activityLogRepository.Table;
-            if(!String.IsNullOrEmpty(ipAddress))
+            if(!string.IsNullOrEmpty(ipAddress))
                 query = query.Where(al => al.IpAddress.Contains(ipAddress));
             if (createdOnFrom.HasValue)
                 query = query.Where(al => createdOnFrom.Value <= al.CreatedOnUtc);
@@ -308,8 +319,8 @@ namespace Nop.Services.Logging
 
 
                 //do all databases support "Truncate command"?
-                string activityLogTableName = _dbContext.GetTableName<ActivityLog>();
-                _dbContext.ExecuteSqlCommand(String.Format("TRUNCATE TABLE [{0}]", activityLogTableName));
+                var activityLogTableName = _dbContext.GetTableName<ActivityLog>();
+                _dbContext.ExecuteSqlCommand($"TRUNCATE TABLE [{activityLogTableName}]");
             }
             else
             {
@@ -318,7 +329,7 @@ namespace Nop.Services.Logging
                     _activityLogRepository.Delete(activityLogItem);
             }
         }
-        #endregion
 
+        #endregion
     }
 }

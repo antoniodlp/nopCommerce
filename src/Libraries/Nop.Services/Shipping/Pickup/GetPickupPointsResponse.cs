@@ -1,5 +1,5 @@
-using Nop.Core.Domain.Shipping;
 using System.Collections.Generic;
+using Nop.Core.Domain.Shipping;
 
 namespace Nop.Services.Shipping.Pickup
 {
@@ -8,6 +8,9 @@ namespace Nop.Services.Shipping.Pickup
     /// </summary>
     public partial class GetPickupPointsResponse
     {
+        /// <summary>
+        /// Ctor
+        /// </summary>
         public GetPickupPointsResponse()
         {
             Errors = new List<string>();

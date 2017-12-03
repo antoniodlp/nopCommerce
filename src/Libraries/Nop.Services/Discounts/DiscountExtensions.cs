@@ -5,6 +5,9 @@ using Nop.Core.Domain.Discounts;
 
 namespace Nop.Services.Discounts
 {
+    /// <summary>
+    /// Discount extensions
+    /// </summary>
     public static class DiscountExtensions
     {
         /// <summary>
@@ -13,10 +16,10 @@ namespace Nop.Services.Discounts
         /// <param name="discount">Discount</param>
         /// <param name="amount">Amount</param>
         /// <returns>The discount amount</returns>
-        public static decimal GetDiscountAmount(this Discount discount, decimal amount)
+        public static decimal GetDiscountAmount(this DiscountForCaching discount, decimal amount)
         {
             if (discount == null)
-                throw new ArgumentNullException("discount");
+                throw new ArgumentNullException(nameof(discount));
 
             //calculate discount amount
             decimal result;
@@ -25,7 +28,7 @@ namespace Nop.Services.Discounts
             else
                 result = discount.DiscountAmount;
 
-            //validate maximum disocunt amount
+            //validate maximum discount amount
             if (discount.UsePercentage && 
                 discount.MaximumDiscountAmount.HasValue &&
                 result > discount.MaximumDiscountAmount.Value)
@@ -44,13 +47,13 @@ namespace Nop.Services.Discounts
         /// <param name="amount">Amount (initial value)</param>
         /// <param name="discountAmount">Discount amount</param>
         /// <returns>Preferred discount</returns>
-        public static List<Discount> GetPreferredDiscount(this IList<Discount> discounts,
+        public static List<DiscountForCaching> GetPreferredDiscount(this IList<DiscountForCaching> discounts,
             decimal amount, out decimal discountAmount)
         {
             if (discounts == null)
-                throw new ArgumentNullException("discounts");
+                throw new ArgumentNullException(nameof(discounts));
 
-            var result = new List<Discount>();
+            var result = new List<DiscountForCaching>();
             discountAmount = decimal.Zero;
             if (!discounts.Any())
                 return result;
@@ -58,7 +61,7 @@ namespace Nop.Services.Discounts
             //first we check simple discounts
             foreach (var discount in discounts)
             {
-                decimal currentDiscountValue = discount.GetDiscountAmount(amount);
+                var currentDiscountValue = discount.GetDiscountAmount(amount);
                 if (currentDiscountValue > discountAmount)
                 {
                     discountAmount = currentDiscountValue;
@@ -92,20 +95,51 @@ namespace Nop.Services.Discounts
         /// <param name="discounts">A list of discounts</param>
         /// <param name="discount">Discount to check</param>
         /// <returns>Result</returns>
-        public static bool ContainsDiscount(this IList<Discount> discounts,
-            Discount discount)
+        public static bool ContainsDiscount(this IList<DiscountForCaching> discounts,
+            DiscountForCaching discount)
         {
             if (discounts == null)
-                throw new ArgumentNullException("discounts");
+                throw new ArgumentNullException(nameof(discounts));
 
             if (discount == null)
-                throw new ArgumentNullException("discount");
+                throw new ArgumentNullException(nameof(discount));
 
             foreach (var dis1 in discounts)
                 if (discount.Id == dis1.Id)
                     return true;
 
             return false;
+        }
+
+        /// <summary>
+        /// Map a discount to the same class for caching
+        /// </summary>
+        /// <param name="discount">Discount</param>
+        /// <returns>Result</returns>
+        public static DiscountForCaching MapDiscount(this Discount discount)
+        {
+            if (discount == null)
+                throw new ArgumentNullException(nameof(discount));
+
+            return new DiscountForCaching
+            {
+                Id = discount.Id,
+                Name = discount.Name,
+                DiscountTypeId = discount.DiscountTypeId,
+                UsePercentage = discount.UsePercentage,
+                DiscountPercentage = discount.DiscountPercentage,
+                DiscountAmount = discount.DiscountAmount,
+                MaximumDiscountAmount = discount.MaximumDiscountAmount,
+                StartDateUtc = discount.StartDateUtc,
+                EndDateUtc = discount.EndDateUtc,
+                RequiresCouponCode = discount.RequiresCouponCode,
+                CouponCode = discount.CouponCode,
+                IsCumulative = discount.IsCumulative,
+                DiscountLimitationId = discount.DiscountLimitationId,
+                LimitationTimes = discount.LimitationTimes,
+                MaximumDiscountedQuantity = discount.MaximumDiscountedQuantity,
+                AppliedToSubCategories = discount.AppliedToSubCategories
+            };
         }
     }
 }

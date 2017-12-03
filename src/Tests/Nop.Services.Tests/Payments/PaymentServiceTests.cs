@@ -22,8 +22,10 @@ namespace Nop.Services.Tests.Payments
         [SetUp]
         public new void SetUp()
         {
-            _paymentSettings = new PaymentSettings();
-            _paymentSettings.ActivePaymentMethodSystemNames = new List<string>();
+            _paymentSettings = new PaymentSettings
+            {
+                ActivePaymentMethodSystemNames = new List<string>()
+            };
             _paymentSettings.ActivePaymentMethodSystemNames.Add("Payments.TestMethod");
 
             var pluginFinder = new PluginFinder();
@@ -37,7 +39,7 @@ namespace Nop.Services.Tests.Payments
         [Test]
         public void Can_load_paymentMethods()
         {
-            var srcm = _paymentService.LoadActivePaymentMethods();
+            var srcm = _paymentService.LoadAllPaymentMethods();
             srcm.ShouldNotBeNull();
             (srcm.Any()).ShouldBeTrue();
         }

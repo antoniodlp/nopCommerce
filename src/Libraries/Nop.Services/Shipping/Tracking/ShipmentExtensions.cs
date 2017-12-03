@@ -2,6 +2,9 @@
 
 namespace Nop.Services.Shipping.Tracking
 {
+    /// <summary>
+    /// Shipment extensions
+    /// </summary>
     public static class ShipmentExtensions
     {
         /// <summary>
@@ -16,15 +19,17 @@ namespace Nop.Services.Shipping.Tracking
             if (!shipment.Order.PickUpInStore)
             {
                 var shippingRateComputationMethod = shippingService.LoadShippingRateComputationMethodBySystemName(shipment.Order.ShippingRateComputationMethodSystemName);
-                if (shippingRateComputationMethod != null && shippingRateComputationMethod.PluginDescriptor.Installed &&
-                    shippingRateComputationMethod.IsShippingRateComputationMethodActive(shippingSettings))
+                if (shippingRateComputationMethod != null && 
+                    shippingRateComputationMethod.PluginDescriptor.Installed)
+                    //shippingRateComputationMethod.IsShippingRateComputationMethodActive(shippingSettings))
                     return shippingRateComputationMethod.ShipmentTracker;
             }
             else
             {
                 var pickupPointProvider = shippingService.LoadPickupPointProviderBySystemName(shipment.Order.ShippingRateComputationMethodSystemName);
-                if (pickupPointProvider != null && pickupPointProvider.PluginDescriptor.Installed &&
-                    pickupPointProvider.IsPickupPointProviderActive(shippingSettings))
+                if (pickupPointProvider != null && 
+                    pickupPointProvider.PluginDescriptor.Installed)
+                    //pickupPointProvider.IsPickupPointProviderActive(shippingSettings))
                     return pickupPointProvider.ShipmentTracker;
             }
 
